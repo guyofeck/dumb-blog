@@ -27,6 +27,18 @@ function getSessionUser(req) {
   return match ? sessions.get(match[1]) || null : null;
 }
 
+// One-shot flash message carried in a cookie: set on redirect, shown once, cleared.
+function flashCookie(message) {
+  return `flash=${encodeURIComponent(message)}; Path=/; SameSite=Lax; Max-Age=30`;
+}
+
+function getFlash(req) {
+  const match = (req.headers.cookie || "").match(/(?:^|;\s*)flash=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+const CLEAR_FLASH = "flash=; Max-Age=0; Path=/";
+
 function parseBody(req) {
   return new Promise((resolve) => {
     let data = "";
@@ -68,7 +80,7 @@ function page(title, body, user) {
 </html>`;
 }
 
-function renderHome(user) {
+function renderHome(user, flash) {
   const list = posts.length
     ? posts
         .slice()
@@ -82,7 +94,8 @@ function renderHome(user) {
         )
         .join("\n")
     : `<p class="empty">No posts yet. The internet thanks you for your restraint.</p>`;
-  return page("Home", `<h1>Latest hot takes</h1>${list}`, user);
+  const banner = flash ? `<div class="flash">✅ ${esc(flash)}</div>` : "";
+  return page("Home", `${banner}<h1>Latest hot takes</h1>${list}`, user);
 }
 
 function renderForm(kind, error) {
@@ -119,15 +132,17 @@ ${error ? `<p class="error">${esc(error)}</p>` : ""}
   );
 }
 
-function redirect(res, location, setCookie) {
+function redirect(res, location, setCookies) {
   const headers = { Location: location };
-  if (setCookie) headers["Set-Cookie"] = setCookie;
+  if (setCookies) headers["Set-Cookie"] = setCookies;
   res.writeHead(302, headers);
   res.end();
 }
 
-function send(res, html, status = 200) {
-  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
+function send(res, html, status = 200, setCookie) {
+  const headers = { "Content-Type": "text/html; charset=utf-8" };
+  if (setCookie) headers["Set-Cookie"] = setCookie;
+  res.writeHead(status, headers);
   res.end(html);
 }
 
@@ -142,7 +157,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/") {
-    return send(res, renderHome(user));
+    const flash = getFlash(req);
+    return send(res, renderHome(user, flash), 200, flash ? CLEAR_FLASH : undefined);
   }
 
   if (url.pathname === "/signup") {
@@ -157,7 +173,10 @@ const server = http.createServer(async (req, res) => {
     const salt = crypto.randomBytes(16).toString("hex");
     users.set(username, { salt, hash: hashPassword(password, salt) });
     const sid = createSession(username);
-    return redirect(res, "/", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`);
+    return redirect(res, "/", [
+      `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`,
+      flashCookie(`Account created — welcome, ${username}! You are now logged in.`),
+    ]);
   }
 
   if (url.pathname === "/login") {
@@ -174,14 +193,20 @@ const server = http.createServer(async (req, res) => {
       );
     if (!ok) return send(res, renderForm("login", "Wrong username or password."), 401);
     const sid = createSession(username);
-    return redirect(res, "/", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`);
+    return redirect(res, "/", [
+      `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`,
+      flashCookie(`Welcome back, ${username}! You are now logged in.`),
+    ]);
   }
 
   if (req.method === "POST" && url.pathname === "/logout") {
     const cookie = req.headers.cookie || "";
     const match = cookie.match(/(?:^|;\s*)sid=([a-f0-9]{64})/);
     if (match) sessions.delete(match[1]);
-    return redirect(res, "/", "sid=; Max-Age=0; Path=/");
+    return redirect(res, "/", [
+      "sid=; Max-Age=0; Path=/",
+      flashCookie("You have been logged out. Go touch grass."),
+    ]);
   }
 
   if (url.pathname === "/new") {

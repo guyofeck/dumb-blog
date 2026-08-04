@@ -103,6 +103,21 @@ input, textarea {
 }
 input:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
 
+.flash {
+  background: #e8f3e4;
+  border: 1px solid #7fae6e;
+  color: #3a6b2a;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  animation: flash-in 0.25s ease-out;
+}
+
+@keyframes flash-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
 .error {
   background: #fdeae4;
   border: 1px solid var(--accent);
