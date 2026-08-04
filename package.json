@@ -1,0 +1,13 @@
+{
+  "name": "dumb-blog",
+  "version": "1.0.0",
+  "description": "Yet Another Dumb Blog — a deliberately simple blog with a login flow and zero dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
