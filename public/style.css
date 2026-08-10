@@ -56,8 +56,8 @@ nav { display: flex; align-items: center; gap: 12px; }
 .btn:hover { background: #000; }
 .btn.ghost { background: transparent; color: var(--ink); }
 .btn.ghost:hover { background: var(--border); }
-.btn.primary { background: var(--accent); border-color: var(--accent); }
-.btn.primary:hover { background: var(--accent-dark); }
+.btn.primary { background: #28a745; border-color: #28a745; }
+.btn.primary:hover { background: #218838; border-color: #218838; }
 
 main {
   flex: 1;
