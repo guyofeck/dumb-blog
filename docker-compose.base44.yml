@@ -1,0 +1,14 @@
+services:
+  web:
+    image: node:22-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: node server.js
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - APP_ORIGIN=https://3000-${BASE44_PUBLIC_HOST_SUFFIX}
+    env_file:
+      - /run/base44/app.env
