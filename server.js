@@ -91,7 +91,7 @@ function page(title, body, user) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · Yet Another Dumb Blog!!</title>
+<title>${esc(title)} · Yet Another Dumb Blog!!@#</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
