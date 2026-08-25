@@ -1,9 +1,14 @@
 const http = require("http");
+const https = require("https");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 4477;
+const APP_ORIGIN = process.env.APP_ORIGIN || `http://localhost:${PORT}`;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+const GOOGLE_REDIRECT_URI = `${APP_ORIGIN}/auth/google/callback`;
 
 // In-memory "database". Restarting the server wipes everything, which is
 // consistent with the overall level of ambition here.
@@ -39,6 +44,33 @@ function getFlash(req) {
 
 const CLEAR_FLASH = "flash=; Max-Age=0; Path=/";
 
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => resolve({ status: res.statusCode, body: data }));
+    }).on("error", reject);
+  });
+}
+
+function httpsPost(hostname, path, body) {
+  return new Promise((resolve, reject) => {
+    const data = Buffer.from(body);
+    const req = https.request({ hostname, path, method: "POST", headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Length": data.length,
+    }}, (res) => {
+      let out = "";
+      res.on("data", (chunk) => (out += chunk));
+      res.on("end", () => resolve({ status: res.statusCode, body: out }));
+    });
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
 function parseBody(req) {
   return new Promise((resolve) => {
     let data = "";
@@ -71,7 +103,8 @@ function page(title, body, user) {
          <a class="btn" href="/new">New post</a>
          <form method="post" action="/logout" class="inline"><button class="btn ghost">Log out</button></form>`
       : `<a class="btn ghost" href="/login">Log in</a>
-         <a class="btn" href="/signup">Sign up</a>`}
+         <a class="btn" href="/signup">Sign up</a>
+         <a class="btn google" href="/auth/google">Sign in with Google</a>`}
   </nav>
 </header>
 <main>${body}</main>
@@ -108,6 +141,8 @@ ${error ? `<p class="error">${esc(error)}</p>` : ""}
   <label>Username <input name="username" required autofocus autocomplete="username"></label>
   <label>Password <input name="password" type="password" required autocomplete="${isLogin ? "current-password" : "new-password"}"></label>
   <button class="btn primary">${isLogin ? "Log in" : "Sign up"}</button>
+  <div class="divider">or</div>
+  <a class="btn google" href="/auth/google">Sign in with Google</a>
   <p class="hint">${
     isLogin
       ? `No account? <a href="/signup">Sign up</a>`
@@ -218,6 +253,61 @@ const server = http.createServer(async (req, res) => {
     if (!title || !body) return send(res, renderNewPost(user, "Both fields are required, tragically."), 400);
     posts.push({ id: posts.length + 1, author: user, title, body, createdAt: Date.now() });
     return redirect(res, "/");
+  }
+
+  // Google OAuth — start
+  if (req.method === "GET" && url.pathname === "/auth/google") {
+    if (!GOOGLE_CLIENT_ID) return send(res, page("Error", "<p class='error'>Google OAuth is not configured.</p>", null), 500);
+    const state = crypto.randomBytes(16).toString("hex");
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+    });
+    return redirect(res, `https://accounts.google.com/o/oauth2/v2/auth?${params}`, [
+      `oauth_state=${state}; HttpOnly; Path=/; SameSite=Lax; Max-Age=300`,
+    ]);
+  }
+
+  // Google OAuth — callback
+  if (req.method === "GET" && url.pathname === "/auth/google/callback") {
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const cookieState = (req.headers.cookie || "").match(/(?:^|;\s*)oauth_state=([a-f0-9]+)/)?.[1];
+    if (!code || !state || state !== cookieState)
+      return send(res, page("Error", "<p class='error'>OAuth state mismatch. Please try again.</p>", null), 400);
+
+    // Exchange code for tokens
+    const tokenRes = await httpsPost("oauth2.googleapis.com", "/token", new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: "authorization_code",
+    }).toString());
+    const tokens = JSON.parse(tokenRes.body);
+    if (!tokens.access_token)
+      return send(res, page("Error", `<p class='error'>Google auth failed: ${esc(tokens.error_description || tokens.error || "unknown error")}</p>`, null), 400);
+
+    // Fetch user info
+    const userRes = await httpsGet(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokens.access_token}`);
+    const profile = JSON.parse(userRes.body);
+    const username = profile.email;
+    if (!username)
+      return send(res, page("Error", "<p class='error'>Could not retrieve email from Google.</p>", null), 400);
+
+    // Create account if first time
+    if (!users.has(username)) {
+      users.set(username, { salt: null, hash: null, google: true });
+    }
+    const sid = createSession(username);
+    return redirect(res, "/", [
+      `oauth_state=; Max-Age=0; Path=/`,
+      `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`,
+      flashCookie(`Welcome, ${username}!`),
+    ]);
   }
 
   send(res, page("404", `<h1>404</h1><p>This page is even dumber than the rest — it doesn't exist.</p>`, user), 404);
