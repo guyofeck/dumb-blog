@@ -128,7 +128,7 @@ function renderHome(user, flash) {
         .join("\n")
     : `<p class="empty">No posts yet. The internet thanks you for your restraint.</p>`;
   const banner = flash ? `<div class="flash">✅ ${esc(flash)}</div>` : "";
-  return page("Home", `${banner}<h1>Latest hot takes</h1>${list}`, user);
+  return page("Home", `${banner}<h1>Opinions I'll regret posting 🔥</h1>${list}`, user);
 }
 
 function renderForm(kind, error) {
