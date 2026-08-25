@@ -223,6 +223,6 @@ const server = http.createServer(async (req, res) => {
   send(res, page("404", `<h1>404</h1><p>This page is even dumber than the rest — it doesn't exist.</p>`, user), 404);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Yet Another Dumb Blog listening on http://localhost:${PORT}`);
 });
