@@ -96,7 +96,7 @@ function page(title, body, user) {
 </head>
 <body>
 <header>
-  <a class="logo" href="/">📰 Opinions Nobody Asked For™</a>
+  <a class="logo" href="/">😔 A Blog Nobody Reads</a>
   <nav>
     ${user
       ? `<span class="who">signed in as <b>${esc(user)}</b></span>
