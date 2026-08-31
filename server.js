@@ -91,12 +91,12 @@ function page(title, body, user) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · My Terrible Opinions</title>
+<title>${esc(title)} · Thoughts I Should've Kept to Myself</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header>
-  <a class="logo" href="/">💩 My Terrible Opinions</a>
+  <a class="logo" href="/">🧠 Thoughts I Should've Kept to Myself</a>
   <nav>
     ${user
       ? `<span class="who">signed in as <b>${esc(user)}</b></span>
