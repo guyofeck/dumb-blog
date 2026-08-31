@@ -91,12 +91,12 @@ function page(title, body, user) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · Yet Another Dumb Blog!!!!</title>
+<title>${esc(title)} · Opinions Nobody Asked For™</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header>
-  <a class="logo" href="/">🗞️ Yet Another Dumb Blog!</a>
+  <a class="logo" href="/">📰 Opinions Nobody Asked For™</a>
   <nav>
     ${user
       ? `<span class="who">signed in as <b>${esc(user)}</b></span>
@@ -108,7 +108,7 @@ function page(title, body, user) {
   </nav>
 </header>
 <main>${body}</main>
-<footer>proudly held together with zero dependencies</footer>
+<footer>⚠️ side effects may include strong opinions and mild regret</footer>
 </body>
 </html>`;
 }
