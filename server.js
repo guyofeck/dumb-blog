@@ -91,12 +91,12 @@ function page(title, body, user) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · Yet Another Dumb Blog!!!!</title>
+<title>${esc(title)} · My Terrible Opinions</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header>
-  <a class="logo" href="/">🗞️ Yet Another Dumb Blog!</a>
+  <a class="logo" href="/">💩 My Terrible Opinions</a>
   <nav>
     ${user
       ? `<span class="who">signed in as <b>${esc(user)}</b></span>
@@ -104,7 +104,7 @@ function page(title, body, user) {
          <form method="post" action="/logout" class="inline"><button class="btn ghost">Log out</button></form>`
       : `<a class="btn ghost" href="/login">Log in</a>
          <a class="btn" href="/signup">Sign up</a>
-         <a class="btn google" href="/auth/google">Sign in with Google</a>`}
+         <a class="btn google" href="/auth/google">Sign in with Google (fancy!)</a>`}
   </nav>
 </header>
 <main>${body}</main>
