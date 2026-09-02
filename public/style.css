@@ -169,3 +169,25 @@ footer {
   font-size: 13px;
   font-style: italic;
 }
+
+.thumbnail-hero {
+  width: 100vw;
+  background: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  margin-bottom: 32px;
+  margin-left: calc(-50vw + 50%);
+}
+
+.thumbnail-heading {
+  font-family: Arial, sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  color: #ffffff;
+  text-align: center;
+  margin: 0;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
