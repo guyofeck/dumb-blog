@@ -96,13 +96,13 @@ function page(title, body, user) {
 </head>
 <body>
 <header>
-  <a class="logo" href="/">🙊 Thoughts I Should Have Kept to Myself</a>
+  <a class="logo" href="/">🧠 Regrets, Now in Blog Form</a>
   <nav>
     ${user
       ? `<span class="who">signed in as <b>${esc(user)}</b></span>
          <a class="btn" href="/new">New post</a>
          <form method="post" action="/logout" class="inline"><button class="btn ghost">Log out</button></form>`
-      : `<a class="btn ghost" href="/login">Log in</a>
+      : `<a class="btn silver" href="/login">Log in</a>
          <a class="btn" href="/signup">Sign up</a>
          <a class="btn google" href="/auth/google">Sign in with Google</a>`}
   </nav>
