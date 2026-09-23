@@ -9,6 +9,10 @@ const APP_ORIGIN = process.env.APP_ORIGIN || `http://localhost:${PORT}`;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_REDIRECT_URI = `${APP_ORIGIN}/auth/google/callback`;
+const AUTH0_DOMAIN = (process.env.AUTH0_DOMAIN || "").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID || "";
+const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET || "";
+const AUTH0_REDIRECT_URI = `${APP_ORIGIN}/auth/auth0/callback`;
 
 // In-memory "database". Restarting the server wipes everything, which is
 // consistent with the overall level of ambition here.
@@ -44,9 +48,9 @@ function getFlash(req) {
 
 const CLEAR_FLASH = "flash=; Max-Age=0; Path=/";
 
-function httpsGet(url) {
+function httpsGet(url, headers = {}) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, { headers }, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => resolve({ status: res.statusCode, body: data }));
@@ -104,7 +108,8 @@ function page(title, body, user) {
          <form method="post" action="/logout" class="inline"><button class="btn ghost">Log out</button></form>`
       : `<a class="btn ghost" href="/login">Log in</a>
          <a class="btn" href="/signup">Sign up</a>
-         <a class="btn google" href="/auth/google">Sign in with Google</a>`}
+         <a class="btn google" href="/auth/google">Sign in with Google</a>
+         <a class="btn auth0" href="/auth/auth0">Sign in with Auth0</a>`}
   </nav>
 </header>
 <main>${body}</main>
@@ -143,6 +148,7 @@ ${error ? `<p class="error">${esc(error)}</p>` : ""}
   <button class="btn primary">${isLogin ? "Log in" : "Sign up"}</button>
   <div class="divider">or</div>
   <a class="btn google" href="/auth/google">Sign in with Google</a>
+  <a class="btn auth0" href="/auth/auth0">Sign in with Auth0</a>
   <p class="hint">${
     isLogin
       ? `No account? <a href="/signup">Sign up</a>`
@@ -301,6 +307,63 @@ const server = http.createServer(async (req, res) => {
     // Create account if first time
     if (!users.has(username)) {
       users.set(username, { salt: null, hash: null, google: true });
+    }
+    const sid = createSession(username);
+    return redirect(res, "/", [
+      `oauth_state=; Max-Age=0; Path=/`,
+      `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`,
+      flashCookie(`Welcome, ${username}!`),
+    ]);
+  }
+
+  // Auth0 OAuth — start
+  if (req.method === "GET" && url.pathname === "/auth/auth0") {
+    if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID)
+      return send(res, page("Error", "<p class='error'>Auth0 SSO is not configured.</p>", null), 500);
+    const state = crypto.randomBytes(16).toString("hex");
+    const params = new URLSearchParams({
+      client_id: AUTH0_CLIENT_ID,
+      redirect_uri: AUTH0_REDIRECT_URI,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+    });
+    return redirect(res, `https://${AUTH0_DOMAIN}/authorize?${params}`, [
+      `oauth_state=${state}; HttpOnly; Path=/; SameSite=Lax; Max-Age=300`,
+    ]);
+  }
+
+  // Auth0 OAuth — callback
+  if (req.method === "GET" && url.pathname === "/auth/auth0/callback") {
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const cookieState = (req.headers.cookie || "").match(/(?:^|;\s*)oauth_state=([a-f0-9]+)/)?.[1];
+    if (url.searchParams.get("error"))
+      return send(res, page("Error", `<p class='error'>Auth0 auth failed: ${esc(url.searchParams.get("error_description") || url.searchParams.get("error"))}</p>`, null), 400);
+    if (!code || !state || state !== cookieState)
+      return send(res, page("Error", "<p class='error'>OAuth state mismatch. Please try again.</p>", null), 400);
+
+    const tokenRes = await httpsPost(AUTH0_DOMAIN, "/oauth/token", new URLSearchParams({
+      code,
+      client_id: AUTH0_CLIENT_ID,
+      client_secret: AUTH0_CLIENT_SECRET,
+      redirect_uri: AUTH0_REDIRECT_URI,
+      grant_type: "authorization_code",
+    }).toString());
+    let tokens = {};
+    try { tokens = JSON.parse(tokenRes.body); } catch {}
+    if (!tokens.access_token)
+      return send(res, page("Error", `<p class='error'>Auth0 auth failed: ${esc(tokens.error_description || tokens.error || "unknown error")}</p>`, null), 400);
+
+    const userRes = await httpsGet(`https://${AUTH0_DOMAIN}/userinfo`, { Authorization: `Bearer ${tokens.access_token}` });
+    let profile = {};
+    try { profile = JSON.parse(userRes.body); } catch {}
+    const username = profile.email;
+    if (!username)
+      return send(res, page("Error", "<p class='error'>Could not retrieve email from Auth0.</p>", null), 400);
+
+    if (!users.has(username)) {
+      users.set(username, { salt: null, hash: null, auth0: true });
     }
     const sid = createSession(username);
     return redirect(res, "/", [

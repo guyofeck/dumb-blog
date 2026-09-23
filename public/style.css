@@ -148,6 +148,17 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); border-color: tr
 }
 .btn.google:hover { background: #f8f9fa; }
 
+.btn.auth0 {
+  background: #eb5424;
+  border-color: #eb5424;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.btn.auth0:hover { background: #d4461a; }
+
 .divider {
   display: flex;
   align-items: center;
