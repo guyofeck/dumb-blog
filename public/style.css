@@ -168,4 +168,5 @@ footer {
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
+  border-top: 2px dashed #b45309;
 }
