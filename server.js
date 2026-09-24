@@ -8,7 +8,8 @@ const PORT = process.env.PORT || 4477;
 const APP_ORIGIN = process.env.APP_ORIGIN || `http://localhost:${PORT}`;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
-const GOOGLE_REDIRECT_URI = `${APP_ORIGIN}/auth/google/callback`;
+const OAUTH_CALLBACK_ORIGIN = process.env.BASE44_OAUTH_CALLBACK_ORIGIN || APP_ORIGIN;
+const GOOGLE_REDIRECT_URI = `${OAUTH_CALLBACK_ORIGIN}/auth/google/callback`;
 
 // In-memory "database". Restarting the server wipes everything, which is
 // consistent with the overall level of ambition here.
