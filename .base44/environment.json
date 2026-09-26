@@ -2,5 +2,8 @@
   "previewPort": 3000,
   "healthPath": "/",
   "startCommand": "docker compose -f docker-compose.base44.yml up -d",
-  "secrets": []
+  "secrets": [
+    {"name": "GOOGLE_CLIENT_ID", "description": "Google OAuth client ID (optional, enables Sign in with Google)", "requiredAtBoot": false},
+    {"name": "GOOGLE_CLIENT_SECRET", "description": "Google OAuth client secret (optional, enables Sign in with Google)", "requiredAtBoot": false}
+  ]
 }
